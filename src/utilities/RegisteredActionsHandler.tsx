@@ -18,6 +18,7 @@ import { useAlignmentEventStore } from "@/stores/AlignmentEventStore";
 import { MarcherShape } from "@/global/classes/canvasObjects/MarcherShape";
 import { useShapePageStore } from "@/stores/ShapePageStore";
 import { toast } from "sonner";
+
 // import xml2abcInterpreter from "electron/xml2abc-js/xml2abcInterpreter";
 
 /**
@@ -89,6 +90,8 @@ export class RegisteredAction {
     readonly desc: string;
     /** The string to display in the UI for the keyboard shortcut. Eg. "Snap to nearest whole [Shift + X]" */
     readonly instructionalString: string;
+
+    readonly keyboardShortcutString: string;
     /** Instructional string to toggle on the given action (only relevant for toggle-based actions)
      * E.g. "Enable X axis [Shift + X]" */
     readonly instructionalStringToggleOn: string;
@@ -124,6 +127,7 @@ export class RegisteredAction {
         const keyString = keyboardShortcut
             ? ` [${keyboardShortcut.toString()}]`
             : "";
+        this.keyboardShortcutString = keyString;
         this.instructionalString = this.desc + keyString;
         this.instructionalStringToggleOn = toggleOnStr
             ? toggleOnStr + keyString
@@ -208,66 +212,66 @@ export const RegisteredActionsObjects: {
 } = {
     // Electron interactions
     launchLoadFileDialogue: new RegisteredAction({
-        desc: "Launch load file dialogue",
+        desc: "actions.electronInteractions.launchLoadFileDialogue",
         enumString: "launchLoadFileDialogue",
     }),
     launchSaveFileDialogue: new RegisteredAction({
-        desc: "Launch save file dialogue",
+        desc: "actions.electronInteractions.launchSaveFileDialogue",
         enumString: "launchSaveFileDialogue",
     }),
     launchNewFileDialogue: new RegisteredAction({
-        desc: "Launch new file dialogue",
+        desc: "actions.electronInteractions.launchNewFileDialogue",
         enumString: "launchNewFileDialogue",
     }),
     launchInsertAudioFileDialogue: new RegisteredAction({
-        desc: "Load new audio file into the show",
+        desc: "actions.electronInteractions.launchInsertAudioFileDialogue",
         enumString: "launchInsertAudioFileDialogue",
     }),
     launchImportMusicXmlFileDialogue: new RegisteredAction({
-        desc: "Import MusicXML file to get measures",
+        desc: "actions.electronInteractions.launchImportMusicXmlFileDialogue",
         enumString: "launchImportMusicXmlFileDialogue",
     }),
     performUndo: new RegisteredAction({
-        desc: "Perform undo",
+        desc: "actions.electronInteractions.performUndo",
         enumString: "performUndo",
     }),
     performRedo: new RegisteredAction({
-        desc: "Perform redo",
+        desc: "actions.electronInteractions.performRedo",
         enumString: "performRedo",
     }),
 
     // Navigation and playback
     nextPage: new RegisteredAction({
-        desc: "Next page",
+        desc: "actions.navigationAndPlayback.nextPage",
         keyboardShortcut: new KeyboardShortcut({ key: "e" }),
         enumString: "nextPage",
     }),
     lastPage: new RegisteredAction({
-        desc: "Last page",
+        desc: "actions.navigationAndPlayback.lastPage",
         keyboardShortcut: new KeyboardShortcut({ key: "e", shift: true }),
         enumString: "lastPage",
     }),
     previousPage: new RegisteredAction({
-        desc: "Previous page",
+        desc: "actions.navigationAndPlayback.previousPage",
         keyboardShortcut: new KeyboardShortcut({ key: "q" }),
         enumString: "previousPage",
     }),
     firstPage: new RegisteredAction({
-        desc: "First page",
+        desc: "actions.navigationAndPlayback.firstPage",
         keyboardShortcut: new KeyboardShortcut({ key: "q", shift: true }),
         enumString: "firstPage",
     }),
     playPause: new RegisteredAction({
-        desc: "Play or pause",
-        toggleOnStr: "Play",
-        toggleOffStr: "Pause",
+        desc: "actions.navigationAndPlayback.playPause.description",
+        toggleOnStr: "actions.navigationAndPlayback.playPause.toggleOn",
+        toggleOffStr: "actions.navigationAndPlayback.playPause.toggleOff",
         keyboardShortcut: new KeyboardShortcut({ key: " " }),
         enumString: "playPause",
     }),
 
     // Batch editing
     setAllMarchersToPreviousPage: new RegisteredAction({
-        desc: "Set all marcher coordinates to previous page",
+        desc: "actions.batchEditing.setAllMarchersToPreviousPage",
         keyboardShortcut: new KeyboardShortcut({
             key: "p",
             shift: true,
@@ -276,12 +280,12 @@ export const RegisteredActionsObjects: {
         enumString: "setAllMarchersToPreviousPage",
     }),
     setSelectedMarchersToPreviousPage: new RegisteredAction({
-        desc: "Set selected marcher(s) coordinates to previous page",
+        desc: "actions.batchEditing.setSelectedMarchersToPreviousPage",
         keyboardShortcut: new KeyboardShortcut({ key: "p", shift: true }),
         enumString: "setSelectedMarchersToPreviousPage",
     }),
     setAllMarchersToNextPage: new RegisteredAction({
-        desc: "Set all marcher coordinates to next page",
+        desc: "actions.batchEditing.setAllMarchersToNextPage",
         keyboardShortcut: new KeyboardShortcut({
             key: "n",
             shift: true,
@@ -290,108 +294,108 @@ export const RegisteredActionsObjects: {
         enumString: "setAllMarchersToNextPage",
     }),
     setSelectedMarchersToNextPage: new RegisteredAction({
-        desc: "Set selected marcher(s) coordinates to next page",
+        desc: "actions.batchEditing.setSelectedMarchersToNextPage",
         keyboardShortcut: new KeyboardShortcut({ key: "n", shift: true }),
         enumString: "setSelectedMarchersToNextPage",
     }),
 
     // Alignment
     snapToNearestWhole: new RegisteredAction({
-        desc: "Snap to nearest whole",
+        desc: "actions.alignment.snapToNearestWhole",
         keyboardShortcut: new KeyboardShortcut({ key: "1" }),
         enumString: "snapToNearestWhole",
     }),
     lockX: new RegisteredAction({
-        desc: "Lock X axis",
-        toggleOnStr: "Lock X movement",
-        toggleOffStr: "Enable X movement",
+        desc: "actions.alignment.lockX.description",
+        toggleOnStr: "actions.alignment.lockX.toggleOn",
+        toggleOffStr: "actions.alignment.lockX.toggleOff",
         keyboardShortcut: new KeyboardShortcut({ key: "y" }),
         enumString: "lockX",
     }),
     lockY: new RegisteredAction({
-        desc: "Lock Y axis",
-        toggleOnStr: "Lock Y movement",
-        toggleOffStr: "Enable Y movement",
+        desc: "actions.alignment.lockY.description",
+        toggleOnStr: "actions.alignment.lockY.toggleOn",
+        toggleOffStr: "actions.alignment.lockY.toggleOff",
         keyboardShortcut: new KeyboardShortcut({ key: "x" }),
         enumString: "lockY",
     }),
     alignVertically: new RegisteredAction({
-        desc: "Align vertically",
+        desc: "actions.alignment.alignVertically",
         keyboardShortcut: new KeyboardShortcut({ key: "v", alt: true }),
         enumString: "alignVertically",
     }),
     alignHorizontally: new RegisteredAction({
-        desc: "Align horizontally",
+        desc: "actions.alignment.alignHorizontally",
         keyboardShortcut: new KeyboardShortcut({ key: "h", alt: true }),
         enumString: "alignHorizontally",
     }),
     evenlyDistributeVertically: new RegisteredAction({
-        desc: "Evenly distribute marchers vertically",
+        desc: "actions.alignment.evenlyDistributeVertically",
         keyboardShortcut: new KeyboardShortcut({ key: "v", shift: true }),
         enumString: "evenlyDistributeVertically",
     }),
     evenlyDistributeHorizontally: new RegisteredAction({
-        desc: "Evenly distribute marchers horizontally",
+        desc: "actions.alignment.evenlyDistributeHorizontally",
         keyboardShortcut: new KeyboardShortcut({ key: "h", shift: true }),
         enumString: "evenlyDistributeHorizontally",
     }),
     swapMarchers: new RegisteredAction({
-        desc: "Swap marchers",
+        desc: "actions.alignment.swapMarchers",
         keyboardShortcut: new KeyboardShortcut({ key: "s", shift: true }),
         enumString: "swapMarchers",
     }),
 
     // UI settings
     togglePreviousPagePaths: new RegisteredAction({
-        desc: "Toggle viewing previous page paths",
-        toggleOnStr: "Show previous page dots/paths",
-        toggleOffStr: "Hide previous page dots/paths",
+        desc: "actions.UI.togglePreviousPagePaths.description",
+        toggleOnStr: "actions.UI.togglePreviousPagePaths.toggleOn",
+        toggleOffStr: "actions.UI.togglePreviousPagePaths.toggleOff",
         keyboardShortcut: new KeyboardShortcut({ key: "n" }),
         enumString: "togglePreviousPagePaths",
     }),
     toggleNextPagePaths: new RegisteredAction({
-        desc: "Toggle viewing next page paths",
-        toggleOnStr: "Show next page dots/paths",
-        toggleOffStr: "Hide next page dots/paths",
+        desc: "actions.UI.toggleNextPagePaths.description",
+        toggleOnStr: "actions.UI.toggleNextPagePaths.toggleOn",
+        toggleOffStr: "actions.UI.toggleNextPagePaths.toggleOff",
         keyboardShortcut: new KeyboardShortcut({ key: "m" }),
         enumString: "toggleNextPagePaths",
     }),
 
     // Cursor Mode
     applyQuickShape: new RegisteredAction({
-        desc: "Snaps marchers to shape without creating an editable object",
+        desc: "actions.cursorMode.applyQuickShape",
         enumString: "applyQuickShape",
         keyboardShortcut: new KeyboardShortcut({ key: "Enter", shift: true }),
     }),
     createMarcherShape: new RegisteredAction({
-        desc: "Creates a new shape with lines or curves that can be edited across pages",
+        desc: "actions.cursorMode.createMarcherShape",
         enumString: "createMarcherShape",
         keyboardShortcut: new KeyboardShortcut({ key: "Enter" }),
     }),
     deleteMarcherShape: new RegisteredAction({
-        desc: "Deletes the current selected shapes",
+        desc: "actions.cursorMode.deleteMarcherShape",
         enumString: "deleteMarcherShape",
         keyboardShortcut: new KeyboardShortcut({ key: "Delete" }),
     }),
     cancelAlignmentUpdates: new RegisteredAction({
-        desc: "Cancel updates to marchers",
+        desc: "actions.cursorMode.cancelAlignmentUpdates",
         enumString: "cancelAlignmentUpdates",
         keyboardShortcut: new KeyboardShortcut({ key: "Escape" }),
     }),
     alignmentEventDefault: new RegisteredAction({
-        desc: "Set cursor mode to default",
+        desc: "actions.cursorMode.alignmentEventDefault",
         enumString: "alignmentEventDefault",
         keyboardShortcut: new KeyboardShortcut({ key: "v" }),
     }),
     alignmentEventLine: new RegisteredAction({
-        desc: "Create a line out of the selected marchers",
+        desc: "actions.cursorMode.alignmentEventLine",
         enumString: "alignmentEventLine",
         keyboardShortcut: new KeyboardShortcut({ key: "l" }),
     }),
 
     // Select
     selectAllMarchers: new RegisteredAction({
-        desc: "Select all marchers",
+        desc: "actions.select.selectAllMarchers",
         keyboardShortcut: new KeyboardShortcut({ key: "a", control: true }),
         enumString: "selectAllMarchers",
     }),
