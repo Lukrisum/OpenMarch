@@ -76,6 +76,7 @@ module.exports = {
         "blockmap",
         "winget",
         "signtool",
+        "viewports",
     ],
     ignorePaths: [
         "node_modules/**",

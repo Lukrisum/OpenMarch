@@ -39,6 +39,7 @@
         "testid",
         "Topbar",
         "undoable",
+        "viewports",
         "zustand"
     ],
     "[typescriptreact]": {
