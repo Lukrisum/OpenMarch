@@ -25,7 +25,8 @@
         "src",
         "electron",
         "e2e",
-        "external-packages/types/xml2abc.d.ts"
+        "external-packages/types/xml2abc.d.ts",
+        "drizzle"
     ],
     "references": [{ "path": "./tsconfig.node.json" }]
 }

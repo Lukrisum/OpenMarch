@@ -9,18 +9,18 @@ export default defineConfig({
         extensions: [".js", ".ts", ".jsx", ".tsx", ".json"],
     },
     test: {
-        // Enable Node.js built-in modules
         globals: true,
+        environment: "jsdom",
         setupFiles: ["./vitest.setup.ts"],
         include: ["**/__test__/**.test.ts?(x)"],
         coverage: {
             reporter: ["text", "json", "json-summary", "html"],
             reportOnFailure: true,
         },
-        environmentMatchGlobs: [
-            ["src/**", "jsdom"],
-            ["electron/**", "node"],
-        ],
+        // environmentMatchGlobs: [
+        //     ["src/**", "jsdom"],
+        //     ["electron/**", "node"],
+        // ],
         testTimeout: 120000, // 2 minute global timeout for all tests
     },
 });

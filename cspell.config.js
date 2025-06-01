@@ -77,8 +77,10 @@ module.exports = {
         "winget",
         "signtool",
         "viewports",
+        "libsql",
     ],
     ignorePaths: [
+        "**/drizzle/migrations/meta/**",
         "node_modules/**",
         "**/node_modules/**",
         "**/dist/**",

@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+    <head>
+        <title>LibSQL WASM Test</title>
+    </head>
+    <body>
+        <h1>LibSQL WASM Test</h1>
+        <div id="results"></div>
+
+        <script type="module">
+            import { createClient } from "@libsql/client-wasm";
+
+            async function runTest() {
+                const results = document.getElementById("results");
+                try {
+                    const client = createClient({
+                        url: "local.db?vfs=opfs",
+                    });
+
+                    // Create tables
+                    await client.execute(`
+                    CREATE TABLE IF NOT EXISTS undo_history (
+                        sequence INTEGER PRIMARY KEY,
+                        history_group INTEGER NOT NULL,
+                        sql TEXT NOT NULL
+                    )
+                `);
+
+                    await client.execute(`
+                    CREATE TABLE IF NOT EXISTS redo_history (
+                        sequence INTEGER PRIMARY KEY,
+                        history_group INTEGER NOT NULL,
+                        sql TEXT NOT NULL
+                    )
+                `);
+
+                    await client.execute(`
+                    CREATE TABLE IF NOT EXISTS history_stats (
+                        id INTEGER PRIMARY KEY DEFAULT 1,
+                        cur_undo_group INTEGER NOT NULL,
+                        cur_redo_group INTEGER NOT NULL,
+                        group_limit INTEGER NOT NULL
+                    )
+                `);
+
+                    // Check if tables were created
+                    const response = await client.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table';",
+                    );
+                    results.innerHTML += "<p>✅ Connected to database</p>";
+                    results.innerHTML += "<p>Tables created:</p>";
+                    results.innerHTML += "<ul>";
+                    for (const row of response.rows) {
+                        results.innerHTML += `<li>${row.name}</li>`;
+                    }
+                    results.innerHTML += "</ul>";
+
+                    // Test data persistence
+                    const testData = {
+                        group: 1,
+                        sql: "CREATE TABLE test (id INT);",
+                    };
+                    await client.execute({
+                        sql: "INSERT INTO undo_history (history_group, sql) VALUES (?, ?)",
+                        args: [testData.group, testData.sql],
+                    });
+                    results.innerHTML += "<p>✅ Inserted test data</p>";
+
+                    const readResult = await client.execute(
+                        "SELECT * FROM undo_history",
+                    );
+                    results.innerHTML += "<p>Read test data:</p>";
+                    results.innerHTML +=
+                        "<pre>" +
+                        JSON.stringify(readResult.rows[0], null, 2) +
+                        "</pre>";
+                } catch (error) {
+                    results.innerHTML += `<p style="color: red">❌ Error: ${error.message}</p>`;
+                    console.error(error);
+                }
+            }
+
+            // Run the test when the page loads
+            runTest().catch(console.error);
+        </script>
+    </body>
+</html>
