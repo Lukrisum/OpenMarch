@@ -13,21 +13,23 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@openmarch/ui";
-import { ArrowSquareOut, Info, CircleNotch } from "@phosphor-icons/react";
+import { ArrowSquareOut, Info, CircleNotch, CaretDown, CaretUp } from "@phosphor-icons/react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { TooltipContents, Button, Input, Checkbox } from "@openmarch/ui";
 import * as Form from "@radix-ui/react-form";
+import * as RadixSelect from "@radix-ui/react-select";
 import { toast } from "sonner";
 import { useTimingObjectsStore } from "@/stores/TimingObjectsStore";
 import { useSelectedPage } from "@/context/SelectedPageContext";
 import OpenMarchCanvas from "@/global/classes/canvasObjects/OpenMarchCanvas";
 import * as Tabs from "@radix-ui/react-tabs";
+import { coordinateRoundingOptions } from "../../config/exportOptions";
 
 function CoordinateSheetExport() {
     const [isTerse, setIsTerse] = useState(false);
     const [includeMeasures, setIncludeMeasures] = useState(true);
     const [useXY, setUseXY] = useState(false);
-    const [roundingDenominator, setRoundingDenominator] = useState(4);
+    const [selectedRoundingOption, setSelectedRoundingOption] = useState(String(4));
     const [organizeBySection, setOrganizeBySection] = useState(false);
     const { marchers } = useMarcherStore()!;
     const { pages } = useTimingObjectsStore()!;
@@ -36,6 +38,10 @@ function CoordinateSheetExport() {
     const [isLoading, setIsLoading] = useState(false);
     const [progress, setProgress] = useState(0);
     const [currentStep, setCurrentStep] = useState("");
+
+    useEffect(() => {
+        console.log('selectedRoundingOption state changed to:', selectedRoundingOption);
+    }, [selectedRoundingOption]);
 
     const handleExport = useCallback(async () => {
         setIsLoading(true);
@@ -47,6 +53,9 @@ function CoordinateSheetExport() {
             setIsLoading(false);
             return;
         }
+
+        // Get the numerical rounding denominator from the selected option
+        const numericalRoundingDenominator = parseInt(selectedRoundingOption, 10) || 4; // Default to 4 if parsing fails
 
         try {
             setCurrentStep("Processing marcher data...");
@@ -82,7 +91,7 @@ function CoordinateSheetExport() {
                             includeMeasures={includeMeasures}
                             terse={isTerse}
                             useXY={useXY}
-                            roundingDenominator={roundingDenominator}
+                            roundingDenominator={numericalRoundingDenominator}
                         />,
                     ),
                 };
@@ -129,7 +138,7 @@ function CoordinateSheetExport() {
         includeMeasures,
         isTerse,
         useXY,
-        roundingDenominator,
+        selectedRoundingOption,
         organizeBySection,
     ]);
 
@@ -188,31 +197,32 @@ function CoordinateSheetExport() {
                     </Form.Label>
                 </Form.Field>
                 <Form.Field
-                    name="roundingDenominator"
+                    name="coordinateRounding"
                     className="flex w-full items-center justify-between gap-12"
                 >
                     <Form.Label className="text-body">
-                        {" "}
-                        Rounding denominator:{" "}
+                        Coordinate Rounding
                     </Form.Label>
-                    <Form.Control asChild className="w-[6rem]">
-                        <Input
-                            type="number"
-                            className="w-fit"
-                            defaultValue={roundingDenominator}
-                            step={1}
-                            min={1}
-                            onChange={(
-                                e: React.ChangeEvent<HTMLInputElement>,
-                            ) =>
-                                setRoundingDenominator(
-                                    parseInt(e.target.value) || 4,
-                                )
-                            }
-                        />
+                    {/* TODO: Finalize UI styling for this select dropdown to match app theme. */}
+                    <Form.Control asChild>
+                        <select
+                            value={selectedRoundingOption}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                                console.log('onChange event triggered');
+                                console.log('e.target.value:', e.target.value);
+                                console.log('e.currentTarget.value:', e.currentTarget.value);
+                                setSelectedRoundingOption(e.currentTarget.value);
+                            }}
+                            className="appearance-none rounded pl-3 pr-10 py-2 text-sm h-[35px] bg-white text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-[calc(6rem+22px)] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.5rem_0.5rem] [background-image:conic-gradient(from_180deg,transparent_0deg,#6b7280_90deg,#6b7280_270deg,transparent_360deg)]"
+                        >
+                            {coordinateRoundingOptions.map((option) => (
+                                <option key={option.value} value={String(option.value)}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
                     </Form.Control>
                 </Form.Field>
-
                 <Form.Field
                     name="organizeBySection"
                     className="flex w-full items-center gap-12"
@@ -255,10 +265,11 @@ function CoordinateSheetExport() {
             <div className="flex flex-col gap-8">
                 <div className="flex w-full items-center justify-between">
                     <h5 className="text-h5">Preview</h5>
-                    <p className="text-sub text-text/75">
+                    {/* Update the helper text if necessary, or remove if it becomes confusing with the dropdown */}
+                    {/* <p className="text-sub text-text/75">
                         {"4 -> 1/4 = nearest quarter step"} {" | "}{" "}
                         {"10 -> 1/10 = nearest tenth step"}
-                    </p>
+                    </p> */}
                 </div>
                 <div>
                     <div className="mx-2 bg-white text-black">
@@ -267,7 +278,7 @@ function CoordinateSheetExport() {
                             terse={isTerse}
                             includeMeasures={includeMeasures}
                             useXY={useXY}
-                            roundingDenominator={roundingDenominator || 4}
+                            roundingDenominator={parseInt(selectedRoundingOption, 10) || 4}
                         />
                     </div>
                 </div>
