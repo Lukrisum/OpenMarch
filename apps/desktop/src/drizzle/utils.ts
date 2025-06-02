@@ -1,6 +1,6 @@
 import { drizzle, LibSQLDatabase } from "drizzle-orm/libsql";
 import * as OpenMarchSchema from "./schema";
-import { createClient } from "@libsql/client";
+import { createClient, Client } from "@libsql/client";
 import type * as DrizzleKit from "drizzle-kit/api";
 import { createRequire } from "node:module";
 import { DrizzleSQLiteSnapshotJSON } from "drizzle-kit/api";
@@ -26,14 +26,28 @@ async function pushSchema(db: OpenMarchDatabase) {
 }
 // end of workaround
 
-export const createTemporaryDatabase = async (): Promise<OpenMarchDatabase> => {
+export const createTemporaryDatabase = async (): Promise<{
+    db: OpenMarchDatabase;
+    dbClient: Client;
+}> => {
     const client = createClient({
         url: "file::memory:",
+        // url: "file:./temp.db",
     });
     const db: OpenMarchDatabase = await drizzle(client, {
         schema: OpenMarchSchema,
         casing: "snake_case",
     });
     await pushSchema(db);
-    return db;
+    await createDefaultValues(db);
+    return { db, dbClient: client };
+};
+
+export const createDefaultValues = async (db: OpenMarchDatabase) => {
+    // History stats
+    await db.insert(OpenMarchSchema.historyStats).values({
+        curUndoGroup: 0,
+        curRedoGroup: 0,
+        groupLimit: 500,
+    });
 };
