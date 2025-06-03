@@ -23,7 +23,7 @@ type Row = {
     name: string;
 };
 
-describe("History Tables and Triggers", () => {
+describe("History Tables and Triggers", async () => {
     let db: OpenMarchDatabase;
     let dbClient: Client;
 
@@ -34,7 +34,7 @@ describe("History Tables and Triggers", () => {
         dbClient = dbClient_;
     });
 
-    describe("basic tests", () => {
+    describe("basic tests", async () => {
         it("should create the history tables", async () => {
             // Check if the undo, redo, and history stats tables were created
             const tables = (await db.run(
@@ -70,7 +70,7 @@ describe("History Tables and Triggers", () => {
             }
         });
 
-        describe("undo history", () => {
+        describe("undo history", async () => {
             const allUndoRowsByGroup = async () =>
                 (
                     await db.run(
@@ -80,7 +80,7 @@ describe("History Tables and Triggers", () => {
             const allUndoRows = async () =>
                 await db.query.historyUndo.findMany();
 
-            describe("empty undo", () => {
+            describe("empty undo", async () => {
                 it("should do nothing if there are no changes to undo", async () => {
                     // Create history tables and test table
                     await db.run(
@@ -88,14 +88,14 @@ describe("History Tables and Triggers", () => {
                     );
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     const undoRows = async () =>
                         (await db.run(sql`SELECT * FROM history_undo`)).rows;
                     expect(await undoRows()).toEqual([]); // There should be no rows in the undo history
 
                     // Execute the undo action
-                    performUndo(db);
+                    await performUndo(db);
                     expect(await undoRows()).toEqual([]); // There should still be no rows in the undo history
                 });
                 it("should do nothing if it runs out of changes to undo", async () => {
@@ -127,7 +127,7 @@ describe("History Tables and Triggers", () => {
                 });
             });
 
-            describe("INSERT trigger", () => {
+            describe("INSERT trigger", async () => {
                 it("should execute an undo correctly from an insert action", async () => {
                     // Create history tables and test table
                     await db.run(
@@ -135,7 +135,7 @@ describe("History Tables and Triggers", () => {
                     );
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     // Insert a value into the test table
                     await db.run(
@@ -148,7 +148,7 @@ describe("History Tables and Triggers", () => {
                     );
 
                     // Execute the undo action
-                    performUndo(db);
+                    await performUndo(db);
 
                     // Verify that the last insert was undone
                     const row = await db.run(
@@ -168,7 +168,7 @@ describe("History Tables and Triggers", () => {
                     );
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     // Insert a value into the test table in three groups
                     // group 1
@@ -238,9 +238,9 @@ describe("History Tables and Triggers", () => {
                         ...groupOneObjects,
                         ...groupTwoObjects,
                     ]);
-                    performUndo(db);
+                    await performUndo(db);
                     expect(await allObjects()).toEqual([...groupOneObjects]);
-                    performUndo(db);
+                    await performUndo(db);
                     expect(await allObjects()).toEqual([]);
 
                     // Expect there to be no undo actions left
@@ -248,8 +248,8 @@ describe("History Tables and Triggers", () => {
                 });
             });
 
-            describe("UPDATE trigger", () => {
-                it("should execute an undo correctly from an update action", () => {
+            describe("UPDATE trigger", async () => {
+                it("should execute an undo correctly from an update action", async () => {
                     // Create history tables and test table
                     db.prepare(
                         "CREATE TABLE test_table (id INTEGER PRIMARY KEY, test_value TEXT);",
@@ -267,7 +267,7 @@ describe("History Tables and Triggers", () => {
                         ).test_value;
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     // Insert a value into the test table
                     db.prepare(
@@ -291,12 +291,12 @@ describe("History Tables and Triggers", () => {
                     incrementUndoGroup(db);
 
                     // Execute the undo action
-                    performUndo(db);
+                    await performUndo(db);
                     // Verify that the last update was undone
                     expect(currentValue()).toBe("updated value"); // The undo should have reverted the last update
 
                     // Execute the undo action again
-                    performUndo(db);
+                    await performUndo(db);
                     // Verify that the first update was undone
                     expect(currentValue()).toBe("test value"); // The undo should have reverted the first update
 
@@ -304,7 +304,7 @@ describe("History Tables and Triggers", () => {
                     expect(allUndoRows().length).toBe(1);
                 });
 
-                it("should undo groups of updates correctly", () => {
+                it("should undo groups of updates correctly", async () => {
                     type Row = { id: number; test_value: string };
                     // Create history tables and test table
                     db.prepare(
@@ -312,7 +312,7 @@ describe("History Tables and Triggers", () => {
                     ).run();
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     // Insert a value into the test table
                     // group 1
@@ -418,7 +418,7 @@ describe("History Tables and Triggers", () => {
                     expect(allRows()).toEqual(expectedValues);
 
                     // Execute the undo action again
-                    performUndo(db);
+                    await performUndo(db);
                     expectedValues = [
                         { id: 1, test_value: "g1-0 - updated value" },
                         { id: 2, test_value: "g1-1 - updated value" },
@@ -430,7 +430,7 @@ describe("History Tables and Triggers", () => {
                     expect(allRows()).toEqual(expectedValues);
 
                     // Execute the undo action again
-                    performUndo(db);
+                    await performUndo(db);
                     expectedValues = [
                         { id: 1, test_value: "g1-0 - updated value" },
                         { id: 2, test_value: "g1-1 - updated value" },
@@ -442,7 +442,7 @@ describe("History Tables and Triggers", () => {
                     expect(allRows()).toEqual(expectedValues);
 
                     // Execute the undo action again
-                    performUndo(db);
+                    await performUndo(db);
                     expectedValues = [
                         { id: 1, test_value: "g1-0 - initial value" },
                         { id: 2, test_value: "g1-1 - initial value" },
@@ -458,8 +458,8 @@ describe("History Tables and Triggers", () => {
                 });
             });
 
-            describe("DELETE trigger", () => {
-                it("should execute an undo correctly from a delete action", () => {
+            describe("DELETE trigger", async () => {
+                it("should execute an undo correctly from a delete action", async () => {
                     // Create history tables and test table
                     db.prepare(
                         "CREATE TABLE test_table (id INTEGER PRIMARY KEY, test_value TEXT);",
@@ -482,7 +482,7 @@ describe("History Tables and Triggers", () => {
                     };
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     // Insert a value into the test table
                     db.prepare(
@@ -497,7 +497,7 @@ describe("History Tables and Triggers", () => {
                     incrementUndoGroup(db);
 
                     // Execute the undo action
-                    performUndo(db);
+                    await performUndo(db);
                     // Verify that the last delete was undone
                     expect(currentValue()).toBe("test value"); // The undo should have restored the last deleted value
 
@@ -505,7 +505,7 @@ describe("History Tables and Triggers", () => {
                     expect(allUndoRows().length).toBe(1);
                 });
 
-                it("should undo groups of deletes correctly", () => {
+                it("should undo groups of deletes correctly", async () => {
                     type Row = { id: number; test_value: string };
                     // Create history tables and test table
                     db.prepare(
@@ -513,7 +513,7 @@ describe("History Tables and Triggers", () => {
                     ).run();
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     // Insert a value into the test table
                     // group 1
@@ -572,9 +572,9 @@ describe("History Tables and Triggers", () => {
                     expect(allRows()).toEqual([]);
 
                     // Execute three undo actions
-                    performUndo(db);
-                    performUndo(db);
-                    performUndo(db);
+                    await performUndo(db);
+                    await performUndo(db);
+                    await performUndo(db);
                     let expectedValues = [
                         { id: 1, test_value: "g1-0" },
                         { id: 2, test_value: "g1-1" },
@@ -612,7 +612,7 @@ describe("History Tables and Triggers", () => {
             });
         });
 
-        describe("redo history", () => {
+        describe("redo history", async () => {
             const allRedoRowsByGroup = () =>
                 db
                     .prepare(
@@ -624,15 +624,15 @@ describe("History Tables and Triggers", () => {
                     .prepare(`SELECT * FROM ${Constants.RedoHistoryTableName};`)
                     .all() as HistoryRow[];
 
-            describe("empty redo", () => {
-                it("should do nothing if there are no changes to redo", () => {
+            describe("empty redo", async () => {
+                it("should do nothing if there are no changes to redo", async () => {
                     // Create history tables and test table
                     db.run(
                         sql`CREATE TABLE test_table (id INTEGER PRIMARY KEY, value TEXT)`,
                     );
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     expect(allRedoRows()).toEqual([]); // There should be no rows in the redo history
 
@@ -640,14 +640,14 @@ describe("History Tables and Triggers", () => {
                     performRedo(db);
                     expect(allRedoRows()).toEqual([]); // There should still be no rows in the redo history
                 });
-                it("should do nothing if it runs out of changes to redo", () => {
+                it("should do nothing if it runs out of changes to redo", async () => {
                     // Create history tables and test table
                     db.run(
                         sql`CREATE TABLE test_table (id INTEGER PRIMARY KEY, value TEXT)`,
                     );
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     expect(allRedoRows()).toEqual([]);
 
@@ -656,7 +656,7 @@ describe("History Tables and Triggers", () => {
                         sql`INSERT INTO test_table (value) VALUES (${`test value`})`,
                     );
                     // Execute an undo action to add a change to the redo history
-                    performUndo(db);
+                    await performUndo(db);
                     expect(allRedoRows().length).toBe(1);
 
                     // Execute the redo action
@@ -669,8 +669,8 @@ describe("History Tables and Triggers", () => {
                 });
             });
 
-            describe("INSERT trigger", () => {
-                it("should execute a redo correctly from undoing an insert action", () => {
+            describe("INSERT trigger", async () => {
+                it("should execute a redo correctly from undoing an insert action", async () => {
                     type Row = { id: number; value: string };
                     // Create history tables and test table
                     db.run(
@@ -678,7 +678,7 @@ describe("History Tables and Triggers", () => {
                     );
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     // Insert a value into the test table
                     db.run(
@@ -700,7 +700,7 @@ describe("History Tables and Triggers", () => {
                     expect(allRows()).toEqual(completeRows);
 
                     // Execute the undo action
-                    performUndo(db);
+                    await performUndo(db);
                     expect(allRows()).toEqual([completeRows[0]]);
 
                     // Execute the redo action
@@ -711,7 +711,7 @@ describe("History Tables and Triggers", () => {
                     expect(allRedoRows().length).toBe(0);
                 });
 
-                it("should undo groups of inserts correctly", () => {
+                it("should undo groups of inserts correctly", async () => {
                     type Row = { id: number; value: string };
                     // Create history tables and test table
                     db.run(
@@ -719,7 +719,7 @@ describe("History Tables and Triggers", () => {
                     );
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     // Insert a value into the test table in three groups
                     // group 1
@@ -766,14 +766,14 @@ describe("History Tables and Triggers", () => {
                     ]);
 
                     // Execute the undo action
-                    performUndo(db);
+                    await performUndo(db);
                     expect(allObjects()).toEqual([
                         ...groupOneObjects,
                         ...groupTwoObjects,
                     ]);
-                    performUndo(db);
+                    await performUndo(db);
                     expect(allObjects()).toEqual([...groupOneObjects]);
-                    performUndo(db);
+                    await performUndo(db);
                     expect(allObjects()).toEqual([]);
 
                     // Execute the redo action
@@ -795,13 +795,13 @@ describe("History Tables and Triggers", () => {
                     expect(allRedoRows().length).toBe(0);
                 });
 
-                it("should have no redo operations after inserting a new undo entry after INSERT", () => {
+                it("should have no redo operations after inserting a new undo entry after INSERT", async () => {
                     db.run(
                         sql`CREATE TABLE test_table (id INTEGER PRIMARY KEY, value TEXT)`,
                     );
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     // Insert a value into the test table in three groups
                     // group 1
@@ -830,9 +830,9 @@ describe("History Tables and Triggers", () => {
                     incrementUndoGroup(db);
 
                     // Execute the undo action
-                    performUndo(db);
-                    performUndo(db);
-                    performUndo(db);
+                    await performUndo(db);
+                    await performUndo(db);
+                    await performUndo(db);
 
                     expect(allRedoRowsByGroup().length).toBe(3);
 
@@ -845,8 +845,8 @@ describe("History Tables and Triggers", () => {
                 });
             });
 
-            describe("UPDATE trigger", () => {
-                it("should execute an undo correctly from an update action", () => {
+            describe("UPDATE trigger", async () => {
+                it("should execute an undo correctly from an update action", async () => {
                     // Create history tables and test table
                     db.prepare(
                         "CREATE TABLE test_table (id INTEGER PRIMARY KEY, test_value TEXT);",
@@ -864,7 +864,7 @@ describe("History Tables and Triggers", () => {
                         ).test_value;
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     // Insert a value into the test table
                     db.prepare(
@@ -883,8 +883,8 @@ describe("History Tables and Triggers", () => {
                     incrementUndoGroup(db);
 
                     // Execute two undo actions
-                    performUndo(db);
-                    performUndo(db);
+                    await performUndo(db);
+                    await performUndo(db);
                     expect(currentValue()).toBe("test value");
 
                     performRedo(db);
@@ -897,7 +897,7 @@ describe("History Tables and Triggers", () => {
                     expect(allRedoRows().length).toBe(0);
                 });
 
-                it("should undo groups of updates correctly", () => {
+                it("should undo groups of updates correctly", async () => {
                     type Row = { id: number; test_value: string };
                     // Create history tables and test table
                     db.prepare(
@@ -905,7 +905,7 @@ describe("History Tables and Triggers", () => {
                     ).run();
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     // Insert a value into the test table
                     // group 1
@@ -989,10 +989,10 @@ describe("History Tables and Triggers", () => {
                     expect(allRows()).toEqual(expectedValues);
 
                     // Execute four undo actions
-                    performUndo(db);
-                    performUndo(db);
-                    performUndo(db);
-                    performUndo(db);
+                    await performUndo(db);
+                    await performUndo(db);
+                    await performUndo(db);
+                    await performUndo(db);
 
                     // Execute a redo action
                     performRedo(db);
@@ -1043,7 +1043,7 @@ describe("History Tables and Triggers", () => {
                     expect(allRedoRows().length).toBe(0);
                 });
 
-                it("should have no redo operations after inserting a new undo entry after UPDATE", () => {
+                it("should have no redo operations after inserting a new undo entry after UPDATE", async () => {
                     type Row = { id: number; test_value: string };
                     // Create history tables and test table
                     db.prepare(
@@ -1051,7 +1051,7 @@ describe("History Tables and Triggers", () => {
                     ).run();
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     // Insert a value into the test table
                     // group 1
@@ -1135,10 +1135,10 @@ describe("History Tables and Triggers", () => {
                     expect(allRows()).toEqual(expectedValues);
 
                     // Execute four undo actions
-                    performUndo(db);
-                    performUndo(db);
-                    performUndo(db);
-                    performUndo(db);
+                    await performUndo(db);
+                    await performUndo(db);
+                    await performUndo(db);
+                    await performUndo(db);
 
                     expect(allRedoRowsByGroup().length).toBe(4);
 
@@ -1150,8 +1150,8 @@ describe("History Tables and Triggers", () => {
                 });
             });
 
-            describe("DELETE trigger", () => {
-                it("should execute an undo correctly from a delete action", () => {
+            describe("DELETE trigger", async () => {
+                it("should execute an undo correctly from a delete action", async () => {
                     // Create history tables and test table
                     db.prepare(
                         "CREATE TABLE test_table (id INTEGER PRIMARY KEY, test_value TEXT);",
@@ -1174,7 +1174,7 @@ describe("History Tables and Triggers", () => {
                     };
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     // Insert a value into the test table
                     db.prepare(
@@ -1187,7 +1187,7 @@ describe("History Tables and Triggers", () => {
                     incrementUndoGroup(db);
 
                     // Execute the undo action
-                    performUndo(db);
+                    await performUndo(db);
                     expect(currentValue()).toBeDefined();
 
                     // Execute the redo action
@@ -1198,7 +1198,7 @@ describe("History Tables and Triggers", () => {
                     expect(allRedoRows().length).toBe(0);
                 });
 
-                it("should undo groups of deletes correctly", () => {
+                it("should undo groups of deletes correctly", async () => {
                     type Row = { id: number; test_value: string };
                     // Create history tables and test table
                     db.prepare(
@@ -1206,7 +1206,7 @@ describe("History Tables and Triggers", () => {
                     ).run();
 
                     // Create undo triggers for the test table
-                    createUndoTriggers(db, "test_table");
+                    await createUndoTriggers(db, "test_table");
 
                     // Insert a value into the test table
                     // group 1
@@ -1265,9 +1265,9 @@ describe("History Tables and Triggers", () => {
                     expect(allRows()).toEqual([]);
 
                     // Execute three undo actions
-                    performUndo(db);
-                    performUndo(db);
-                    performUndo(db);
+                    await performUndo(db);
+                    await performUndo(db);
+                    await performUndo(db);
                     let expectedValues = [
                         { id: 1, test_value: "g1-0" },
                         { id: 2, test_value: "g1-1" },
@@ -1306,8 +1306,8 @@ describe("History Tables and Triggers", () => {
         });
     });
 
-    describe("Advanced Undo/Redo Stress Tests", () => {
-        function setupComplexTables() {
+    describe("Advanced Undo/Redo Stress Tests", async () => {
+        async function setupComplexTables() {
             db.exec(`
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1332,12 +1332,12 @@ describe("History Tables and Triggers", () => {
             );
         `);
 
-            createUndoTriggers(db, "users");
-            createUndoTriggers(db, "orders");
-            createUndoTriggers(db, "payments");
+            await createUndoTriggers(db, "users");
+            await createUndoTriggers(db, "orders");
+            await createUndoTriggers(db, "payments");
         }
 
-        it("Complex data with foreign keys and multiple undo/redo intervals", () => {
+        it("Complex data with foreign keys and multiple undo/redo intervals", async () => {
             setupComplexTables();
 
             // Insert user data
@@ -1368,11 +1368,11 @@ describe("History Tables and Triggers", () => {
             incrementUndoGroup(db);
 
             // Perform undo in random intervals
-            performUndo(db); // Undo payments
+            await performUndo(db); // Undo payments
             let payments = db.prepare("SELECT * FROM payments").all();
             expect(payments.length).toBe(0);
 
-            performUndo(db); // Undo orders
+            await performUndo(db); // Undo orders
             let orders = db.prepare("SELECT * FROM orders").all();
             expect(orders.length).toBe(0);
 
@@ -1386,14 +1386,14 @@ describe("History Tables and Triggers", () => {
             expect(payments.length).toBe(2);
 
             // Undo back to the users table
-            performUndo(db);
-            performUndo(db);
-            performUndo(db);
+            await performUndo(db);
+            await performUndo(db);
+            await performUndo(db);
             let users = db.prepare("SELECT * FROM users").all();
             expect(users.length).toBe(0);
         });
 
-        it("Undo/Redo with random intervals, updates, and WHERE clauses", () => {
+        it("Undo/Redo with random intervals, updates, and WHERE clauses", async () => {
             setupComplexTables();
 
             // Insert initial users
@@ -1421,14 +1421,14 @@ describe("History Tables and Triggers", () => {
             incrementUndoGroup(db);
 
             // Undo the age update and verify the value
-            performUndo(db);
+            await performUndo(db);
             let result = db
                 .prepare("SELECT age FROM users WHERE name = ?")
                 .get("Alice") as { age: number };
             expect(result.age).toBe(28);
 
             // Undo order insertion and check if the table is empty
-            performUndo(db);
+            await performUndo(db);
             let orders = db.prepare("SELECT * FROM orders").all();
             expect(orders.length).toBe(0);
 
@@ -1439,7 +1439,7 @@ describe("History Tables and Triggers", () => {
             expect(orders.length).toBe(2);
         });
 
-        it("Randomized undo/redo with interleaved data changes", () => {
+        it("Randomized undo/redo with interleaved data changes", async () => {
             setupComplexTables();
 
             // Insert several users and orders interleaved with undo/redo
@@ -1461,13 +1461,13 @@ describe("History Tables and Triggers", () => {
 
             // Perform undo of orders, then insert more data
             let expectedOrders = db.prepare("SELECT * FROM orders").all();
-            performUndo(db);
+            await performUndo(db);
             let currentOrders = db.prepare("SELECT * FROM orders").all();
             expect(currentOrders.length).toBe(0);
             performRedo(db);
             currentOrders = db.prepare("SELECT * FROM orders").all();
             expect(currentOrders).toEqual(expectedOrders);
-            performUndo(db);
+            await performUndo(db);
 
             db.prepare(
                 "INSERT INTO users (name, age, email) VALUES (?, ?, ?)",
@@ -1476,7 +1476,7 @@ describe("History Tables and Triggers", () => {
 
             // Perform redo of orders and undo user insertion
             performRedo(db);
-            performUndo(db);
+            await performUndo(db);
 
             let users = db.prepare("SELECT * FROM users").all();
             expect(users.length).toBe(2); // Should contain only 'Chris' and 'Diana'
@@ -1485,7 +1485,7 @@ describe("History Tables and Triggers", () => {
             expect(currentOrders.length).toBe(0); // Orders should be restored
         });
 
-        it("Complex updates and deletes with random undo/redo intervals", () => {
+        it("Complex updates and deletes with random undo/redo intervals", async () => {
             setupComplexTables();
 
             // Insert users and orders
@@ -1514,8 +1514,8 @@ describe("History Tables and Triggers", () => {
             incrementUndoGroup(db);
 
             // Undo deletion and updates
-            performUndo(db);
-            performUndo(db);
+            await performUndo(db);
+            await performUndo(db);
 
             let user = db
                 .prepare("SELECT * FROM users WHERE name = ?")
@@ -1528,7 +1528,7 @@ describe("History Tables and Triggers", () => {
         });
     });
 
-    describe("Limit Tests", () => {
+    describe("Limit Tests", async () => {
         const groupLimit = () =>
             (
                 db
@@ -1546,11 +1546,11 @@ describe("History Tables and Triggers", () => {
                     )
                     .all() as HistoryTableRow[]
             ).map((row) => row.history_group);
-        it("removes the oldest undo group when the undo limit of 100 is reached", () => {
+        it("removes the oldest undo group when the undo limit of 100 is reached", async () => {
             db.run(
                 sql`CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER, email TEXT)`,
             );
-            createUndoTriggers(db, "users");
+            await createUndoTriggers(db, "users");
 
             // set the limit to 100
             db.run(
@@ -1605,11 +1605,11 @@ describe("History Tables and Triggers", () => {
             expect(allRows.length).toBeGreaterThan(150);
         });
 
-        it("removes the oldest undo group when the undo limit of 2000 is reached", () => {
+        it("removes the oldest undo group when the undo limit of 2000 is reached", async () => {
             db.run(
                 sql`CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER, email TEXT)`,
             );
-            createUndoTriggers(db, "users");
+            await createUndoTriggers(db, "users");
 
             // set the limit to 2000
             db.run(
@@ -1664,11 +1664,11 @@ describe("History Tables and Triggers", () => {
             expect(allRows.length).toBeGreaterThan(150);
         });
 
-        it("adds more undo groups when the limit is increased", () => {
+        it("adds more undo groups when the limit is increased", async () => {
             db.run(
                 sql`CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER, email TEXT)`,
             );
-            createUndoTriggers(db, "users");
+            await createUndoTriggers(db, "users");
 
             // set the limit to 100
             db.run(
@@ -1717,11 +1717,11 @@ describe("History Tables and Triggers", () => {
             expect(undoGroups()).toEqual(expectedGroups);
         });
 
-        it("removes groups when the limit is decreased", () => {
+        it("removes groups when the limit is decreased", async () => {
             db.run(
                 sql`CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER, email TEXT)`,
             );
-            createUndoTriggers(db, "users");
+            await createUndoTriggers(db, "users");
 
             // set the limit to 200
             db.run(
@@ -1763,9 +1763,10 @@ describe("History Tables and Triggers", () => {
         });
     });
 
-    describe("Advanced Undo/Redo Stress Tests with Reserved Words, Special Characters, and DELETE Operations", () => {
-        function setupComplexTablesWithReservedWords() {
-            db.exec(`
+    describe("Advanced Undo/Redo Stress Tests with Reserved Words, Special Characters, and DELETE Operations", async () => {
+        async function setupComplexTablesWithReservedWords() {
+            await db.run(
+                sql.raw(`
             CREATE TABLE reserved_words_test (
                 "order" INTEGER PRIMARY KEY AUTOINCREMENT,
                 "group" TEXT,
@@ -1776,68 +1777,75 @@ describe("History Tables and Triggers", () => {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 description TEXT
             );
-        `);
+        `),
+            );
 
-            createUndoTriggers(db, "reserved_words_test");
-            createUndoTriggers(db, "special_characters_test");
+            await createUndoTriggers(db, "reserved_words_test");
+            await createUndoTriggers(db, "special_characters_test");
         }
 
-        it("Undo/Redo with reserved words, special characters, and DELETE operations", () => {
-            setupComplexTablesWithReservedWords();
+        it("Undo/Redo with reserved words, special characters, and DELETE operations", async () => {
+            await setupComplexTablesWithReservedWords();
 
             // Insert into reserved_words_test
-            db.prepare(
-                'INSERT INTO reserved_words_test ("group", "select", "from") VALUES (?, ?, ?)',
-            ).run("Group1", "Select1", "From1");
-            db.prepare(
-                'INSERT INTO reserved_words_test ("group", "select", "from") VALUES (?, ?, ?)',
-            ).run("Group2", "Select2", "From2");
-            incrementUndoGroup(db);
+            await db.run(
+                sql.raw(
+                    'INSERT INTO reserved_words_test ("group", "select", "from") VALUES (?, ?, ?)',
+                ),
+            );
+            await db.run(
+                sql.raw(
+                    'INSERT INTO reserved_words_test ("group", "select", "from") VALUES (?, ?, ?)',
+                ),
+            );
+            await incrementUndoGroup(db);
 
             // Insert into special_characters_test
-            db.prepare(
-                "INSERT INTO special_characters_test (description) VALUES (?)",
-            ).run(
-                "\"Double quote\", 'Single quote', (Parentheses), [Brackets]",
+            await db.run(
+                sql.raw(
+                    "INSERT INTO special_characters_test (description) VALUES ('\"Double quote\", 'Single quote', (Parentheses), [Brackets]')",
+                ),
             );
-            db.prepare(
-                "INSERT INTO special_characters_test (description) VALUES (?)",
-            ).run("Escape \\ backslash");
-            incrementUndoGroup(db);
+            await db.run(
+                sql.raw(
+                    "INSERT INTO special_characters_test (description) VALUES ('Escape \\ backslash')",
+                ),
+            );
+            await incrementUndoGroup(db);
 
             // Perform DELETE operations
-            db.prepare(
-                'DELETE FROM reserved_words_test WHERE "order" = 2',
-            ).run();
-            db.prepare(
-                "DELETE FROM special_characters_test WHERE id = 2",
-            ).run();
-            incrementUndoGroup(db);
+            await db.run(
+                sql.raw('DELETE FROM reserved_words_test WHERE "order" = 2'),
+            );
+            await db.run(
+                sql.raw("DELETE FROM special_characters_test WHERE id = 2"),
+            );
+            await incrementUndoGroup(db);
 
             // Undo DELETE operations
-            performUndo(db); // Undo the DELETE from special_characters_test
-            let specialResult = db
-                .prepare("SELECT * FROM special_characters_test")
-                .all();
-            expect(specialResult.length).toBe(2); // Both rows should be back
+            await performUndo(db); // Undo the DELETE from special_characters_test
+            let specialResult = await db.run(
+                sql.raw("SELECT * FROM special_characters_test"),
+            );
+            expect(specialResult.rows.length).toBe(2); // Both rows should be back
 
-            performUndo(db); // Undo the DELETE from reserved_words_test
-            let reservedResult = db
-                .prepare("SELECT * FROM reserved_words_test")
-                .all();
-            expect(reservedResult.length).toBe(2); // Both rows should be back
+            await performUndo(db); // Undo the DELETE from reserved_words_test
+            let reservedResult = await db.run(
+                sql.raw("SELECT * FROM reserved_words_test"),
+            );
+            expect(reservedResult.rows.length).toBe(2); // Both rows should be back
 
             // Redo DELETE operations
-            performUndo(db);
-            performRedo(db); // Redo the DELETE from reserved_words_test
-            reservedResult = db
-                .prepare("SELECT * FROM reserved_words_test")
-                .all();
-            expect(reservedResult.length).toBe(2); // One row should be deleted
+            await performUndo(db);
+            await performRedo(db); // Redo the DELETE from reserved_words_test
+            reservedResult = await db.run(
+                sql.raw("SELECT * FROM reserved_words_test"),
+            );
+            expect(reservedResult.rows.length).toBe(2); // One row should be deleted
         });
 
-        it("Undo/Redo with random intervals, updates, deletes, and WHERE clauses", () => {
-            setupComplexTablesWithReservedWords();
+        it("Undo/Redo with random intervals, updates, deletes, and WHERE clauses", async () => {
+            await setupComplexTablesWithReservedWords();
 
             // Insert into both tables
             db.prepare(
@@ -1894,7 +1902,7 @@ describe("History Tables and Triggers", () => {
             expect(specialResult.length).toBe(0); // The row should be deleted
         });
 
-        it("Stress test with multiple DELETEs, special characters, and reserved words", () => {
+        it("Stress test with multiple DELETEs, special characters, and reserved words", async () => {
             setupComplexTablesWithReservedWords();
 
             // Insert several rows into both tables
@@ -1922,7 +1930,7 @@ describe("History Tables and Triggers", () => {
             incrementUndoGroup(db);
 
             // Undo all DELETEs
-            performUndo(db);
+            await performUndo(db);
 
             let reservedResult = db
                 .prepare("SELECT * FROM reserved_words_test")
@@ -1948,7 +1956,7 @@ describe("History Tables and Triggers", () => {
         });
     });
 
-    describe("flattenUndoGroupsAbove", () => {
+    describe("flattenUndoGroupsAbove", async () => {
         let db: Database.Database;
         const testDbPath = ":memory:";
 
@@ -1966,7 +1974,7 @@ describe("History Tables and Triggers", () => {
             db.close();
         });
 
-        it("should flatten all undo groups above the specified group", () => {
+        it("should flatten all undo groups above the specified group", async () => {
             // Setup: Create multiple undo groups
             const insertSql = `INSERT INTO ${Constants.UndoHistoryTableName} (sequence, history_group, sql) VALUES (?, ?, ?)`;
 
@@ -1995,7 +2003,7 @@ describe("History Tables and Triggers", () => {
             expect(result[4].history_group).toBe(2); // Group 5 should be flattened to 2
         });
 
-        it("should do nothing when there are no groups above the specified group", () => {
+        it("should do nothing when there are no groups above the specified group", async () => {
             // Setup: Create undo groups all below or equal to the target
             const insertSql = `INSERT INTO ${Constants.UndoHistoryTableName} (sequence, history_group, sql) VALUES (?, ?, ?)`;
 
@@ -2019,7 +2027,7 @@ describe("History Tables and Triggers", () => {
             expect(result[2].history_group).toBe(3);
         });
 
-        it("should work with an empty undo history table", () => {
+        it("should work with an empty undo history table", async () => {
             // Execute the function on an empty table
             flattenUndoGroupsAbove(db, 5);
 
@@ -2032,7 +2040,7 @@ describe("History Tables and Triggers", () => {
             expect(result.count).toBe(0);
         });
 
-        it("should handle negative group numbers correctly", () => {
+        it("should handle negative group numbers correctly", async () => {
             // Setup: Create undo groups with negative numbers
             const insertSql = `INSERT INTO ${Constants.UndoHistoryTableName} (sequence, history_group, sql) VALUES (?, ?, ?)`;
 
@@ -2060,7 +2068,7 @@ describe("History Tables and Triggers", () => {
             expect(result[4].history_group).toBe(-2); // Group 1 should be flattened to -2
         });
 
-        it("should work with incrementUndoGroup to flatten newly created groups", () => {
+        it("should work with incrementUndoGroup to flatten newly created groups", async () => {
             // Setup: Create initial undo group
             incrementUndoGroup(db); // Group 1
 
@@ -2095,7 +2103,7 @@ describe("History Tables and Triggers", () => {
             expect(currentGroup).toBe(3); // The current group in stats should still be 3
         });
 
-        it("should log appropriate messages when flattening groups", () => {
+        it("should log appropriate messages when flattening groups", async () => {
             // Setup
             const consoleSpy = vi.spyOn(console, "log");
 
@@ -2111,7 +2119,7 @@ describe("History Tables and Triggers", () => {
             );
         });
 
-        it("should handle large group numbers and many records efficiently", () => {
+        it("should handle large group numbers and many records efficiently", async () => {
             // Setup: Create many undo groups with large group numbers
             const insertSql = `INSERT INTO ${Constants.UndoHistoryTableName} (sequence, history_group, sql) VALUES (?, ?, ?)`;
 
@@ -2149,7 +2157,7 @@ describe("History Tables and Triggers", () => {
         });
     });
 
-    describe("calculateHistorySize", () => {
+    describe("calculateHistorySize", async () => {
         let db: Database.Database;
 
         beforeEach(() => {
@@ -2175,17 +2183,17 @@ describe("History Tables and Triggers", () => {
             db.close();
         });
 
-        it("should return 0 for empty history tables", () => {
+        it("should return 0 for empty history tables", async () => {
             const size = calculateHistorySize(db);
             expect(size).toBe(0);
         });
 
-        it("should calculate size after adding history entries", () => {
+        it("should calculate size after adding history entries", async () => {
             // Create a test table to generate history entries
             db.prepare(
                 "CREATE TABLE test_table (id INTEGER PRIMARY KEY, value TEXT)",
             ).run();
-            createUndoTriggers(db, "test_table");
+            await createUndoTriggers(db, "test_table");
 
             // Get initial size
             const initialSize = calculateHistorySize(db);
@@ -2205,12 +2213,12 @@ describe("History Tables and Triggers", () => {
             expect(sizeAfterAdding).toBeGreaterThan(initialSize);
         });
 
-        it("should handle large amounts of history data", () => {
+        it("should handle large amounts of history data", async () => {
             // Create a test table to generate history entries
             db.prepare(
                 "CREATE TABLE test_table (id INTEGER PRIMARY KEY, value TEXT)",
             ).run();
-            createUndoTriggers(db, "test_table");
+            await createUndoTriggers(db, "test_table");
 
             // Get initial size
             const initialSize = calculateHistorySize(db);
@@ -2235,12 +2243,12 @@ describe("History Tables and Triggers", () => {
             );
         });
 
-        it("should return consistent results when called multiple times", () => {
+        it("should return consistent results when called multiple times", async () => {
             // Create a test table and add some history
             db.prepare(
                 "CREATE TABLE test_table (id INTEGER PRIMARY KEY, value TEXT)",
             ).run();
-            createUndoTriggers(db, "test_table");
+            await createUndoTriggers(db, "test_table");
             incrementUndoGroup(db);
             db.prepare("INSERT INTO test_table (value) VALUES ('test')").run();
 
